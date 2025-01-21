@@ -61,11 +61,13 @@ public class GLWindow implements Window {
         String prop = "";
 
         Logger.log("copper", "Detected host platform " + currentPlatform);
+        String curPath = System.getProperty("user.dir");
 
-        if (currentPlatform == Platform.WINDOWS.getName())
-            prop = "./lib;./lib/ogl/windows";
+        if (currentPlatform == Platform.WINDOWS.getName()) {
+            prop = curPath + "/lib/ogl;" + curPath + "/lib/ogl/windows";
+            System.setProperty("java.library.path", System.getProperty("java.library.path") + ";" + prop);
+        }
         else if (currentPlatform == Platform.LINUX.getName()) {
-            String curPath = System.getProperty("user.dir");
             prop = curPath + "/lib/ogl/linux:" + curPath + "/lib/ogl";
             System.setProperty("java.library.path", System.getProperty("java.library.path") + ":" + prop);
         }
