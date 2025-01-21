@@ -42,7 +42,7 @@ public class GLLightingEngine extends LightingEngine {
      * @return The dumped data array representing the lights.
      */
     public void writePipelineData(GLShader litShader, int max_lights) {
-        Point cOffset = Scene.currentScene.getCamera().pos.getDrawLoc();
+        Point cOffset = Scene.currentScene.getCamera().transform.location.getDrawLoc();
 
         // TODO: Perform light culling based on screen resolution.
         int index = 0;
