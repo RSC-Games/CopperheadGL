@@ -1,12 +1,16 @@
 dist {
     ARGS = "-Xlint:unchecked -Xlint:deprecation -g"  # Compiler flags.
-    CLASSPATH = ".;lib/velocity.jar"  # Provided classpath
     MAINFILE = "RPInfo.java"  # Main file for javac code generation.
     ENTRYPOINT = "RPInfo"  # Code entrypoint
     BINARY = "Copperhead_GL.jar"  # Deployment binary.
 
     # Install the LWJGL sources too.
-    CLASSPATH := ";lib/ogl/joml-1.10.5.jar;lib/ogl/lwjgl-glfw.jar;lib/ogl/lwjgl-opengl.jar;lib/ogl/lwjgl.jar"
+    if ($(PLATFORM) == "win") {
+        CLASSPATH = ".;lib/velocity.jar;lib/ogl/joml-1.10.5.jar;lib/ogl/lwjgl-glfw.jar;lib/ogl/lwjgl-opengl.jar;lib/ogl/lwjgl.jar"
+    }
+    if ($(PLATFORM) == "linux") {
+        CLASSPATH = ".:lib/velocity.jar:lib/ogl/joml-1.10.5.jar:lib/ogl/lwjgl-glfw.jar:lib/ogl/lwjgl-opengl.jar:lib/ogl/lwjgl.jar"
+    }
 
     # jBuilder must be asked to explicitly copy the build dir. Once done, it will automatically execute all ops on the new dir.
     %useoutdir

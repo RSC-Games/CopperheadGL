@@ -1,5 +1,6 @@
 package com.rsc_games.copperheadgl;
 
+import velocity.util.Logger;
 import velocity.util.Point;
 import velocity.util.Vector2;
 import velocity.Driver;
@@ -56,10 +57,25 @@ public class GLWindow implements Window {
         System.out.println("[copper]: Found LWJGL version " + Version.getVersion());
 
         // Start initialization.
-        String prop = "./lib;./lib/ogl/windows";
+        String currentPlatform = Platform.get().getName();
+        String prop = "";
+
+        Logger.log("copper", "Detected host platform " + currentPlatform);
+
+        if (currentPlatform == Platform.WINDOWS.getName())
+            prop = "./lib;./lib/ogl/windows";
+        else if (currentPlatform == Platform.LINUX.getName()) {
+            String curPath = System.getProperty("user.dir");
+            prop = curPath + "/lib/ogl/linux:" + curPath + "/lib/ogl";
+            System.setProperty("java.library.path", System.getProperty("java.library.path") + ":" + prop);
+        }
+        else
+            throw new RuntimeException("Running on unsupported platform " + currentPlatform);
+
+        System.out.println(System.getProperties());
         System.setProperty("org.lwjgl.librarypath", prop);
-        //System.setProperty("org.lwjgl.util.Debug", "true");
-        //System.setProperty("org.lwjgl.util.DebugLoader", "true");
+        System.setProperty("org.lwjgl.util.Debug", "true");
+        System.setProperty("org.lwjgl.util.DebugLoader", "true");
         GLFWErrorCallback.createPrint(System.err).set();
 
         // Attempt to initialize GLFW. This, if it fails, is a fatal renderer exception
