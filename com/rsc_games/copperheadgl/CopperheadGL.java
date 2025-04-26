@@ -7,6 +7,7 @@ import org.lwjgl.opengl.GL11;
 
 import velocity.Driver;
 import velocity.Scene;
+import velocity.config.GlobalAppConfig;
 import velocity.renderer.DrawTimer;
 import velocity.renderer.FrameBuffer;
 import velocity.renderer.RenderPipeline;
@@ -28,7 +29,7 @@ import java.awt.image.BufferedImage;
  * pipeline.
  */
 public class CopperheadGL extends RenderPipeline {
-    static final String COPPERHEADGL_VERSION = "0.0.0-dev";
+    static final String COPPERHEADGL_VERSION = "0.0.2-dev";
 
     GLWindow window;
     GLRendererContext iRendererContext;
@@ -105,8 +106,13 @@ public class CopperheadGL extends RenderPipeline {
         iRendererContext.clearBuffers();
 
         // Submit all the drawcalls to the backend renderer.
-        GLFrameBuffer frameBuffer = iRendererContext.getBackBuffer();
-        Scene.currentScene.render(backBuffer, frameBuffer);
+        GLFrameBuffer uiFrameBuffer = iRendererContext.getBackBuffer();
+        Scene.currentScene.render(backBuffer, uiFrameBuffer);
+
+        // Modern replacement for the debug renderer.
+        // Draw collision rects and other debug information.
+        if (GlobalAppConfig.bcfg.EN_DEBUG_RENDERER)
+            Scene.currentScene.DEBUG_render(uiFrameBuffer, Scene.currentScene.getCamera().transform.location.getDrawLoc(), new float[] {1f, 1f});
 
         // Backbuffer has already submitted all of its data to the backend renderer.
         // Use that data to composite a frame.

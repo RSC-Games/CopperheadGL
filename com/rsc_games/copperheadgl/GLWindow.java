@@ -194,6 +194,7 @@ public class GLWindow implements Window {
 
     /**
      * Update the standard and virtual resolutions.
+     * For non 16:9 resolutions, the x dimension is kept and the y is calculated from the provided x resolution.
      * 
      * @param width New window width.
      * @param height New window height.

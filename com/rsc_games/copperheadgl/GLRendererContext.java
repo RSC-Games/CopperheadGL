@@ -18,8 +18,10 @@ import java.util.ArrayList;
 
 import org.joml.Vector3f;
 
+import velocity.Rect;
 import velocity.renderer.DrawInfo;
 import velocity.renderer.RendererImage;
+import velocity.util.Logger;
 import velocity.util.Point;
 
 class GLRendererContext {
@@ -34,6 +36,7 @@ class GLRendererContext {
     GLTextureBatchRenderer batchRenderer;
     GLTextBatchRenderer textRenderer;
     GLPrimitiveRenderer primitiveRenderer;
+    GLRectRenderer rectRenderer;
     GLFrameBuffer backBuffer;
     GLFrameBuffer uiBackBuffer;
 
@@ -42,6 +45,7 @@ class GLRendererContext {
 
         this.batchRenderer = new GLTextureBatchRenderer(this);
         this.textRenderer = new GLTextBatchRenderer(this);
+        this.rectRenderer = new GLRectRenderer(this);
         this.primitiveRenderer = new GLPrimitiveRenderer();
     }
 
@@ -67,6 +71,7 @@ class GLRendererContext {
 
         batchRenderer.init();
         textRenderer.init();
+        rectRenderer.init();
         //primitiveRenderer.init();
 
         glClearColor(0f, 0f, 0f, 0f);
@@ -105,6 +110,7 @@ class GLRendererContext {
         batchRenderer.start();
         textRenderer.start();
         //primitiveRenderer.start();
+        rectRenderer.start();
 
         // TODO: remove the layer system since its made redundant by z-buffering.
         for (ArrayList<GLDrawCall> layer : drawQueue.getDrawCalls().values()) {
@@ -115,6 +121,7 @@ class GLRendererContext {
         batchRenderer.commit();
         textRenderer.commit();
         //primitiveRenderer.commit();
+        rectRenderer.commit();
     }
 
     /**
@@ -133,19 +140,48 @@ class GLRendererContext {
                 batchRenderer.drawShaded((GLRendererImage)args[0], (DrawInfo)args[1]);
                 break;
             case DRAW_CIRCLE:
+                Logger.warn("copper", "Received unsupported draw call: DRAW_CIRCLE");
                 break;
             case DRAW_LINE:
+                Logger.warn("copper", "Received unsupported draw call: DRAW_LINE");
                 break;
             case DRAW_LINES:
+                Logger.warn("copper", "Received unsupported draw call: DRAW_LINES");
                 break;
             case DRAW_RECT:
+                // Draw filled rect.
+                if ((boolean)args[3])
+                    break;
+                else
+                    rectRenderer.drawRectangle((Rect)args[0], (int)args[1], (Color)args[2]);
+
                 break;
             case DRAW_TEXT:
                 textRenderer.drawText((Point)args[0], (String)args[1], (Font)args[2], (Color)args[3]);
                 break;
             case DRAW_TRI:
+                Logger.warn("copper", "Received unsupported draw call: DRAW_TRI");
                 break;
         }
+    }
+
+    /**
+     * Get the current game resolution this renderer is targeting.
+     * 
+     * @return Current virtual resolution.
+     */
+    public Point getVirtualResolution() {
+        return this.virtualResolution;
+    }
+
+    /**
+     * Get the current output resolution. This is not guaranteed to be
+     * the same as the virtual resolution.
+     * 
+     * @return Current back buffer resolution.
+     */
+    public Point getRenderResolution() {
+        return this.renderPipeline.getWindow().getResolution();
     }
 
     /**

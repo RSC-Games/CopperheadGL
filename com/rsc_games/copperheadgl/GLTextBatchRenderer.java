@@ -8,6 +8,7 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 
 import org.joml.Vector2f;
 import org.joml.Vector3f;
@@ -57,6 +58,7 @@ public class GLTextBatchRenderer {
     private static int TEXTURE_LIMIT = 0;
 
     GLRendererContext rendererContext;
+    ArrayList<GLTexture2D> textureList;
 
     // Main shaders.
     GLShader quadShader;
@@ -76,6 +78,7 @@ public class GLTextBatchRenderer {
 
     public GLTextBatchRenderer(GLRendererContext rendererContext) {
         this.rendererContext = rendererContext;
+        this.textureList = new ArrayList<>();
 
         int[] out = new int[1];
         glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, out);
@@ -137,8 +140,16 @@ public class GLTextBatchRenderer {
         ShaderUtil.unbind();
     }
 
+    /**
+     * Erase all registered text textures from last frame, as they're wasting VRAM
+     * and will never be used again.
+     */
     public void onRenderNextFrame() {
-        // TODO: Clear the texture arraylist.
+        for (GLTexture2D texture2d : textureList) {
+            texture2d.free();
+        }
+
+        textureList.clear();
     }
 
     public void deinit() {
@@ -194,20 +205,42 @@ public class GLTextBatchRenderer {
      * @param color Text color.
      */
     public void drawText(Point loc, String text, Font font, Color color) {
-        __g.setFont(font);
+        // Determine supersampling factor for rendering text at the display resolution
+        // rather than the virtual resolution.
+        Point virtualResolution = this.rendererContext.getVirtualResolution();
+        Point realResolution = this.rendererContext.getRenderResolution();
+
+        Vector2 superSampleFactor = new Vector2(realResolution).div(new Vector2(virtualResolution));
+
+        // Prescale the font to compensate for the true backbuffer resolution.
+        Font scaledFont = font.deriveFont(font.getSize() * superSampleFactor.x);
+        __g.setFont(scaledFont);
+
         FontMetrics metrics = __g.getFontMetrics();
         int fontWidth = metrics.stringWidth(text);
         Rectangle2D fontRect = metrics.getStringBounds(text, __g);
 
         BufferedImage textRaster = new BufferedImage(
-            Math.max(fontWidth * 2, 1),
+            Math.max(fontWidth, 1),
             Math.max((int)fontRect.getHeight(), 1),
             BufferedImage.TYPE_4BYTE_ABGR
         );
         Point rasterSize = new Point(textRaster.getWidth(), textRaster.getHeight());
+
+        // Prevent supersampled text from being upsampled by the graphics engine.
+        __g.setFont(font);
+
+        FontMetrics origMetrics = __g.getFontMetrics();
+        int origWidth = origMetrics.stringWidth(text);
+        Rectangle2D origRect = origMetrics.getStringBounds(text, __g);
+
+        Point trueRasterSize = new Point(
+            Math.max(origWidth, 1),
+            Math.max((int)origRect.getHeight(), 1)
+        );
         
         Graphics textRenderer = textRaster.getGraphics();
-        textRenderer.setFont(font);
+        textRenderer.setFont(scaledFont);
         textRenderer.setColor(color);
 
         // AWT centers text awkwardly.
@@ -215,16 +248,16 @@ public class GLTextBatchRenderer {
 
         // Queue the texture and track it for deletion next frame.
         DrawInfo info = new DrawInfo(
-            new Rect(loc.add(rasterSize.div(2)), rasterSize), 
+            new Rect(loc.add(trueRasterSize.div(2)), trueRasterSize), 
             0f, 
             Point.zero, 
             1
         );
-        info.drawRect.translate(new Point(0, rasterSize.y - metrics.getDescent()).mult(-1));
+        info.drawRect.translate(new Point(0, trueRasterSize.y - origMetrics.getDescent()).mult(-1));
 
         GLTexture2D fontTexture = new GLTexture2D(textRaster);
         drawQuad(fontTexture, info, color);
-        // TODO: Add the quad to a texture tracker.
+        this.textureList.add(fontTexture);
     }
 
     /**
@@ -259,16 +292,16 @@ public class GLTextBatchRenderer {
         }
 
         // Calculate rect corner locations (and apply transforms!)
-        Point centerPoint = drawInfo.drawRect.getPos();
-        Vector3f center = new Vector3f(centerPoint.x, centerPoint.y, 0f);
+        //Point centerPoint = drawInfo.drawRect.getPos();
+        //Vector3f center = new Vector3f(centerPoint.x, centerPoint.y, 0f);
 
         // BUGFIX: Eliminate tile gaps from rounding error when using virtual resolution.
         // GL_CLAMP_TO_EDGE required too.
-        Vector2 radius = new Vector2(drawInfo.drawRect.getWH()).div(2);
+        //Vector2 radius = new Vector2(drawInfo.drawRect.getWH()).div(2);
         //radius = new Vector2((float)Math.ceil(radius.x), (float)Math.ceil(radius.y));
 
-        Vector3f scale = new Vector3f(drawInfo.scale.x, drawInfo.scale.y, 1);
-        float rot = (float)Math.toRadians(drawInfo.rot);
+        //Vector3f scale = new Vector3f(drawInfo.scale.x, drawInfo.scale.y, 1);
+        //float rot = (float)Math.toRadians(drawInfo.rot);
         //int layer = drawInfo.drawLayer;
 
         Point pos = drawInfo.drawRect.getDrawLoc();
